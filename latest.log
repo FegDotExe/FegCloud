@@ -70,3 +70,6 @@
 16_57_02,647 urllib3.connectionpool DEBUG Starting new HTTPS connection (1): api.telegram.org:443
 16_57_08,737 urllib3.connectionpool DEBUG https://api.telegram.org:443 "GET /bot2029964802:AAH78ON4PoZbzjOqxnLGuSLa5X9xG9BeTc4/getUpdates?offset=1&timeout=20 HTTP/1.1" 200 356
 16_57_28,777 urllib3.connectionpool DEBUG https://api.telegram.org:443 "GET /bot2029964802:AAH78ON4PoZbzjOqxnLGuSLa5X9xG9BeTc4/getUpdates?offset=464427370&timeout=20 HTTP/1.1" 200 23
+23_13_26,535 urllib3.connectionpool DEBUG Starting new HTTPS connection (1): api.telegram.org:443
+23_13_39,458 urllib3.connectionpool DEBUG https://api.telegram.org:443 "GET /bot2029964802:AAH78ON4PoZbzjOqxnLGuSLa5X9xG9BeTc4/getUpdates?offset=1&timeout=20 HTTP/1.1" 200 356
+23_13_59,490 urllib3.connectionpool DEBUG https://api.telegram.org:443 "GET /bot2029964802:AAH78ON4PoZbzjOqxnLGuSLa5X9xG9BeTc4/getUpdates?offset=464427371&timeout=20 HTTP/1.1" 200 23

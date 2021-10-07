@@ -1,16 +1,14 @@
-from json import load
+from json import load, dumps
 import os
 import telegram
 import telegram.ext
 import telebot
 import logging
-import threading
 from time import sleep
 from rich.console import Console
 from rich.table import Table
 from rich.box import SQUARE
-from rich.live import Live
-import keyboard
+from pynput import keyboard
 
 current_path = os.path.dirname(os.path.abspath(__file__))+"/"
 logging.basicConfig(filename=current_path+"latest.log",filemode='a',format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',datefmt='%H_%M_%S',level=logging.DEBUG)
@@ -20,8 +18,38 @@ def jread(file):
     with open(current_path+file+".json",encoding="utf-8") as fail:
         data=load(fail)
     return data
+def jwrite(file,data):
+    with open(current_path+file+".json","w") as fail:
+        fail.write(dumps(data,indent=4))
+        fail.close
 
 settings_dict=jread("settings")
+def update_settings_dict(modified_element,value):
+    settings_dict[modified_element]=value
+    jwrite("settings",settings_dict)
+
+class KeyWaiter():
+    """A class which waits for a keypress"""
+    def __init__(self,allow_holding=True):
+        """If allow_holding is enabled, the script does not wait for the key to be up"""
+        self.was_down=False
+        self.was_up=False
+        self.allow_holding=allow_holding
+        self.key=""
+    def key_down(self,key):
+        self.was_down=True
+        self.key=str(key)
+        if self.allow_holding:
+            return False
+    def key_up(self,key):
+        if self.was_down:
+            self.was_up=True
+            return False
+    def wait_for_key(self):
+        with keyboard.Listener(on_press=self.key_down,on_release=self.key_up,supress=True) as listener:
+            listener.join()
+        sleep(settings_dict["input_wait_time"])
+        return self.key
 
 def get_input(input_string,valid_options_list,input_cursor=">",reprint_input_string=False,print_not_valid_message=True,not_valid_message="The given value is not valid"):
     """Prints input_string and waits for user to input a valid value; a value is valid if it is present in the valid_options_list; if a valid value is given, it is then returned as a string"""
@@ -35,7 +63,6 @@ def get_input(input_string,valid_options_list,input_cursor=">",reprint_input_str
         if print_not_valid_message and given_input not in valid_options_list:
             print(not_valid_message)
     return given_input
-
 
 def create_settings_table(cursor):
     settings_table=Table(show_header=False,box=SQUARE)
@@ -51,6 +78,42 @@ def create_settings_table(cursor):
         settings_table.add_row(index_string,setting,str(type(settings_dict[setting])))
         i+=1
     return settings_table
+
+def change_setting(cursor):
+    """Changes the setting at cursor"""
+    element_name=[element for element in settings_dict][cursor]
+    initial_string="You chose to edit the element [bold green]%s[/bold green]; its current value is '[magenta]%s[/magenta]'"%(element_name,str(settings_dict[element_name]))
+    console.print(initial_string)
+    if str(type(settings_dict[element_name]))=="<class 'str'>":
+        console.print("The element you are modifying is a string. Enter its new value down here, or press enter to leave it as it is")
+        new_value=input(">")
+        if new_value!="":
+            update_settings_dict(element_name,new_value)
+    elif str(type(settings_dict[element_name]))=="<class 'list'>":
+        mode="@@@@"
+        while mode!="2":
+            mode=get_input("The element you are modifying is a list.\n[bold green]0[/bold green]│append element\n[bold green]1[/bold green]│remove element\n[bold green]2[/bold green]│exit\n", ["0","1","2"], print_not_valid_message=False)
+            if mode=="0":
+                input_value=input("Enter the value of the element you whish to append or press enter\n>")
+                if input_value!="":
+                    this_list=settings_dict[element_name]
+                    if input_value not in this_list:
+                        this_list.append(input_value)
+                    update_settings_dict(element_name,this_list)
+            elif mode=="1":
+                input_value=input("Enter the value of the element you whish to remove or press enter\n>")
+                if input_value!="":
+                    this_list=settings_dict[element_name]
+                    try:
+                        this_list.remove(input_value)
+                        update_settings_dict(element_name,this_list)
+                    except:
+                        pass
+            console.clear()
+            console.print("The current value is [magenta]%s[/magenta]"%(str(settings_dict[element_name])))
+    else:
+        input("At the moment a variable of the type %s cannot be modified. Press enter to go back"%(str(type(settings_dict[element_name]))))
+        #TODO: sooner or later, add float support
 def change_settings():
     """Displays the settings table and allows user to navigate it"""
     cursor=0
@@ -58,23 +121,25 @@ def change_settings():
     while True:#Get key up/down and navigate settings
         console.clear()
         console.print(create_settings_table(cursor))
-        console.print("w/s to move around; enter to confirm")
-        pressed_key=keyboard.read_key()
-        sleep(0.1)
+        console.print("arrow keys to move around; enter to confirm; esc to exit")
+        pressed_key=KeyWaiter().wait_for_key()
+        #input(pressed_key)#Needed to test keys
         i=len(settings_dict)
-        if pressed_key=="s":
+        if pressed_key=="'s'" or pressed_key=="Key.down":
             cursor+=1
-        elif pressed_key=="w":
+        elif pressed_key=="'w'" or pressed_key=="Key.up":
             cursor-=1
-        elif pressed_key=="enter":
+        elif pressed_key=="Key.enter":
+            input("")#Catches the enter
+            console.clear()
+            change_setting(cursor)
+        elif pressed_key=="Key.esc":
             break
         if cursor>=i:
             cursor=0
         if cursor<0:
             cursor=i-1
-    input("")#Used to remove all the collected input
     console.clear()
-    print(cursor)
 
 class RandomBot():
     def __init__(self):
