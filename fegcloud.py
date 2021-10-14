@@ -15,6 +15,8 @@ current_path = os.path.dirname(os.path.abspath(__file__))+"/"
 logging.basicConfig(filename=current_path+"latest.log",filemode='a',format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',datefmt='%H_%M_%S',level=logging.DEBUG)
 console=Console()
 
+TABLE_EMPTYNESS=6
+
 def jread(file):
     with open(current_path+file+".json",encoding="utf-8") as fail:
         data=load(fail)
@@ -156,12 +158,11 @@ class RandomBot():
         self.bottino.polling()
         console.print("[green]Ended polling[/green]")
 class IndexHelper():
-    """Cool and good class to help with the pretty not cool indexing of things"""
+    """Cool and good class to help with the pretty not cool and good indexing of tables"""
     def __init__(self,dictionary):
         self.current_path=["root"]
         self.previous_path="root"
         self.dictionary=dictionary
-    #TODO: add method to know maximum page amount
     def get_current_content(self):
         """Get the content of the current path"""
         return self.get_dict_from_path(self.current_path)
@@ -175,7 +176,23 @@ class IndexHelper():
                     this_dict=this_dict[path_list[0]]["content"]
             del[path_list[0]]
         return this_dict
-    def get_max_page(self,page,size_y,path=[]):
+    def get_element(self,index,path=[]):
+        """Returns a tuple containing dict and name of the element at given index in given path"""
+        if path==[]:
+            path=self.current_path
+        element_dict=self.get_dict_from_path(path)
+        
+        output_name=""
+        output_dict={}
+        i=0
+        for element in element_dict:
+            if i==index:
+                output_dict=element_dict[element]
+                output_name=element
+            i+=1
+        return output_name,output_dict
+    
+    def get_max_page(self,size_y,path=[]):
         """Gets how many pages can be in this dict; returns a dictionary which looks like this: {"max_pages":1.825,"floor":1,"ceil":2}"""
         output_dict={}
         
@@ -202,15 +219,26 @@ class IndexHelper():
             i+=1
         return i
     def get_items_in_page(self,size_y,page,path=[]):
-        """Gets the amount of items in a page in a said path; size_y must be with the 6, it should be the actual size of the terminal"""
+        """Gets the amount of items in a page in a said path as an int; size_y must be with the 6, it should be the actual size of the terminal"""
         if path==[]:
             path=self.current_path
-        pages_amount=self.get_max_page(page,size_y,path)
+        pages_amount=self.get_max_page(size_y,path)
         if page<pages_amount["floor"]:
-            return size_y-6
+            return size_y-TABLE_EMPTYNESS
         else:
-            return self.get_items_in_dict(path)-((size_y-6)*pages_amount["floor"])
+            return self.get_items_in_dict(path)-((size_y-TABLE_EMPTYNESS)*pages_amount["floor"])
 
+    def get_page_extremis(self,size_y,page,path=[]):
+        """Gets the minimum and maximum values of indexes in a certain page; they are both returned together"""
+        if path==[]:
+            path=self.current_path
+        items_in_first=self.get_items_in_page(size_y,0,path)
+        lowest=items_in_first*page
+        if page!=self.get_max_page(size_y,path)["ceil"]-1:
+            highest=(items_in_first*(page+1))-1
+        else:
+            highest=((self.get_items_in_page(size_y,page,path)-1)+lowest)
+        return lowest,highest
 
 class Cloud():
     def __init__(self):
@@ -226,7 +254,7 @@ class Cloud():
         output_table.add_column("Name")
         i=0
         for element in data_dict:
-            if self.y_size*self.page<=i+6<=(self.y_size*(self.page+1))-1:
+            if (self.y_size-TABLE_EMPTYNESS)*self.page<=i<=((self.y_size-TABLE_EMPTYNESS)*(self.page+1))-1:
                 if data_dict[element]["type"]=="folder":
                     element_name=element+"/"
                 else:
@@ -242,21 +270,44 @@ class Cloud():
         while True:
             console.clear()
             console.print(self.create_table(self.index_helper.get_current_content()))
-            console.print("P%i"%(self.page))
-            items_in_page=self.index_helper.get_items_in_page(self.y_size,self.page)
+            console.print("[white]%i/%i - %s - h for help[/white]"%(self.page+1,self.index_helper.get_max_page(self.y_size)["ceil"],str(self.index_helper.current_path).replace("[","").replace("]","").replace(", ",",").replace(",","/").replace("'","")))
             pressed_key=KeyWaiter().wait_for_key()
             if pressed_key=="Key.right":
-                if self.page+1<=self.index_helper.get_max_page(self.page,self.y_size)["floor"]:
+                if self.page+1<=self.index_helper.get_max_page(self.y_size)["floor"]:
                     self.page+=1
-                    self.cursor+=(self.y_size-6)#TODO: should get a constant for this 6
+                    self.cursor+=(self.y_size-TABLE_EMPTYNESS)
             elif pressed_key=="Key.left":
                 if self.page-1>=0:
                     self.page-=1
-                    self.cursor-=(self.y_size-6)
+                    self.cursor-=(self.y_size-TABLE_EMPTYNESS)
             elif pressed_key=="Key.down":
                 self.cursor+=1
             elif pressed_key=="Key.up":
                 self.cursor-=1
+            elif pressed_key=="'u'":
+                #Add upload logic
+                pass
+            elif pressed_key=="Key.enter":
+                #TODO: in future this will be used to move things and stuff
+                selected_element=self.index_helper.get_element(self.cursor)
+                if selected_element[1]["type"]=="folder":
+                    self.index_helper.current_path.append(selected_element[0])
+            elif pressed_key=="Key.esc":
+                self.index_helper.current_path=self.index_helper.current_path[:-1]
+                if self.index_helper.current_path==[]:
+                    break
+            elif pressed_key=="'h'":#Help section
+                console.clear()
+                console.print("[bold cyan]up/down[/bold cyan]: Navigate through a page\n[bold cyan]left/right[/bold cyan]: Navigate through pages\nPress enter to go back to the chart")
+                input("")
+            else:
+                input(pressed_key)
+            
+            #Set cursor back to where it is supposed to be
+            if self.cursor>self.index_helper.get_page_extremis(self.y_size,self.page)[1]:
+                    self.cursor=self.index_helper.get_page_extremis(self.y_size,self.page)[0]
+            if self.cursor<self.index_helper.get_page_extremis(self.y_size,self.page)[0]:
+                    self.cursor=self.index_helper.get_page_extremis(self.y_size,self.page)[1]
 
 this_bot=RandomBot()
 while True:

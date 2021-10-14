@@ -14,6 +14,11 @@
                         "type":"file",
                         "chat_id":"123",
                         "message_id":"321"
+                    },
+                    "Foto simpaticona.jpeg":{
+                        "type":"file",
+                        "chat_id":"123",
+                        "message_id":"321"
                     }
                 }
             },
