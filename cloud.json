@@ -1,0 +1,61 @@
+{
+    "root":{
+        "type":"folder",
+        "content":{
+            "roba ubuntu":{
+                "type":"file",
+                "chat_id":"123",
+                "message_id":"321"
+            },
+            "Foto varie":{
+                "type":"folder",
+                "content":{
+                    "Foto simpatica.jpeg":{
+                        "type":"file",
+                        "chat_id":"123",
+                        "message_id":"321"
+                    }
+                }
+            },
+            "bla":{
+                "type":"file"
+            },
+            "blaa":{
+                "type":"file"
+            },
+            "bla2":{
+                "type":"file"
+            },
+            "bla3":{
+                "type":"file"
+            },
+            "bla4":{
+                "type":"file"
+            },
+            "bla5":{
+                "type":"file"
+            },
+            "bla6":{
+                "type":"file"
+            },
+            "bla7":{
+                "type":"file"
+            },
+            "bla8":{
+                "type":"file"
+            },
+            "bla9":{
+                "type":"file"
+            },
+            "bla10":{
+                "type":"file"
+            },
+            "bla11":{
+                "type":"file"
+            },
+            "bla12":{
+                "type":"file"
+            }
+        }
+    }
+}
